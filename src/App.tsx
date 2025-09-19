@@ -10,6 +10,7 @@ import AddNoteModal from "./components/AddNoteModal.tsx";
 import ExportModal from "./components/ExportModal.tsx";
 import Header from "./components/Header.tsx";
 import TimelineView from "./components/TimelineView.tsx";
+import SettingsModal from "./components/SettingsModal.tsx";
 
 function App() {
   const [notes, setNotes] = useState<CareerNote[]>([]);
@@ -18,6 +19,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'grid' | 'timeline'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,7 +147,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header/>
+      <Header onOpenSettings={() => setIsSettingsModalOpen(true)} />
 
       {notes.length === 0 && !isLoading ? (
         <HeroSection onAddNote={() => setIsModalOpen(true)}/>
@@ -241,6 +243,11 @@ function App() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         selectedNotes={getSelectedNotesData()}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </div>
 

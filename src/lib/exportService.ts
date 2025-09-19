@@ -1,4 +1,5 @@
 import { CareerNote, ExportOptions } from '../types';
+import { UserPreferencesService } from './userPreferences';
 
 export class ExportService {
   public static async generateExport(notes: CareerNote[], options: ExportOptions): Promise<string> {
@@ -9,12 +10,25 @@ export class ExportService {
       case 'cv':
         return this.generateCVSection(notes);
       case 'linkedin':
-        return this.generateLinkedInPost(notes, options.tone || 'neutral');
+        return this.generateLinkedInPost(notes, this.mapToneForLinkedIn(options.tone));
       case 'promotion':
         return this.generatePromotionCase(notes);
       default:
         throw new Error('Invalid export type');
     }
+  }
+
+  private static mapToneForLinkedIn(tone?: string): string {
+    const userTone = UserPreferencesService.getTone();
+    
+    // Map user preferences to LinkedIn tone options
+    const toneMapping = {
+      professional: 'neutral',
+      friendly: 'inspiring', 
+      technical: 'technical'
+    };
+    
+    return tone || toneMapping[userTone] || 'neutral';
   }
 
   private static generateCVSection(notes: CareerNote[]): string {
