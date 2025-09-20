@@ -65,7 +65,7 @@ const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect, 
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-all duration-200 space-y-4 relative ${
+      className={`group bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-all duration-200 space-y-4 relative ${
         isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-opacity-50' : 'border-gray-200'
       }`}>
       
@@ -91,7 +91,7 @@ const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect, 
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
           >
             <MoreVertical className="h-4 w-4"/>
           </button>
