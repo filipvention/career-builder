@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CareerNote } from '../types';
-import { Briefcase, Calendar, Check, MessageCircle, Sparkles, Star, Trophy, User } from "lucide-react";
+import {
+  Briefcase,
+  Calendar,
+  Check,
+  Edit3,
+  MessageCircle,
+  MoreVertical,
+  Sparkles,
+  Star,
+  Trash2,
+  Trophy,
+  User
+} from "lucide-react";
 
 interface NoteCardProps {
   note: CareerNote;
   isSelected?: boolean;
   onSelect?: (noteId: string) => void;
+  onEdit?: (note: CareerNote) => void;
+  onDelete?: (noteId: string) => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect}) => {
+const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect, onEdit, onDelete}) => {
+  const [showMenu, setShowMenu] = useState(false);
+
   const getTypeIcon = (type: CareerNote['type']) => {
     switch (type) {
       case 'achievement':
@@ -44,12 +60,28 @@ const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect})
     });
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    onEdit?.(note);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      onDelete?.(note.id);
+    }
+  };
+
   return (
     <div
-      className={`bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-all duration-200 space-y-4 relative ${
+      className={`group bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-all duration-200 space-y-4 relative ${
         isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-opacity-50' : 'border-gray-200'
       }`}>
-      {onSelect && (
+
+      {/* Selection checkbox */}
+      {onSelect && !showMenu && (
         <button
           onClick={() => onSelect(note.id)}
           className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
@@ -60,6 +92,45 @@ const NoteCard: React.FC<NoteCardProps> = ({note, isSelected = false, onSelect})
         >
           {isSelected && <Check className="h-3 w-3"/>}
         </button>
+      )}
+
+      {/* Actions menu */}
+      {(onEdit || onDelete) && !onSelect && (
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <MoreVertical className="h-4 w-4"/>
+          </button>
+
+          {showMenu && (
+            <div
+              className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[120px]">
+              {onEdit && (
+                <button
+                  onClick={handleEdit}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <Edit3 className="h-4 w-4"/>
+                  <span>Edit</span>
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                >
+                  <Trash2 className="h-4 w-4"/>
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="flex items-start justify-between mb-4">

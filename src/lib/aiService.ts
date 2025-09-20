@@ -18,7 +18,6 @@ export class AIService {
       dangerouslyAllowBrowser: true,
     });
 
-    console.log("Calling OpenAI with prompt:", prompt);
     const response = groq.chat.completions.create({
       messages: [
         {

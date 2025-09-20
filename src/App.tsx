@@ -11,6 +11,7 @@ import ExportModal from "./components/ExportModal.tsx";
 import Header from "./components/Header.tsx";
 import TimelineView from "./components/TimelineView.tsx";
 import SettingsModal from "./components/SettingsModal.tsx";
+import EditNoteModal from "./components/EditNoteModal.tsx";
 
 function App() {
   const [notes, setNotes] = useState<CareerNote[]>([]);
@@ -20,6 +21,8 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<CareerNote | null>(null);
   const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +61,7 @@ function App() {
 
   const handleAddNote = async (formData: NoteFormData) => {
     try {
+      console.log('Adding note:', formData);
       // First, insert the note with processing flag
       const {data, error} = await supabase
         .from('career_notes')
@@ -72,12 +76,13 @@ function App() {
       try {
         const aiEnhancedDescription = await AIService.enhanceDescription(data);
         const aiEnhancedDescriptionText = aiEnhancedDescription.choices[0]?.message?.content || "";
+        console.log('AI enhanced description:', aiEnhancedDescriptionText);
 
         // Update the note with AI enhancement
         const {error: updateError} = await supabase
           .from('career_notes')
           .update({
-            ai_enhanced_description: aiEnhancedDescription,
+            ai_enhanced_description: aiEnhancedDescriptionText,
             is_ai_processing: false
           })
           .eq('id', data.id);
@@ -108,6 +113,102 @@ function App() {
       console.error('Error adding note:', error);
       throw error;
     }
+  };
+
+  const handleEditNote = async (formData: NoteFormData) => {
+    if (!editingNote) return;
+
+    try {
+      // Update the note with processing flag
+      const {data, error} = await supabase
+        .from('career_notes')
+        .update({
+          ...formData,
+          is_ai_processing: true,
+          ai_enhanced_description: null // Clear previous AI enhancement
+        })
+        .eq('id', editingNote.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state immediately
+      setNotes(prev => prev.map(note =>
+        note.id === editingNote.id
+          ? {...data, is_ai_processing: true}
+          : note
+      ));
+
+      // Generate AI enhancement in the background
+      try {
+        const aiEnhancedDescription = await AIService.enhanceDescription(data);
+        const aiEnhancedDescriptionText = aiEnhancedDescription.choices[0]?.message?.content || "";
+
+        // Update the note with AI enhancement
+        const {error: updateError} = await supabase
+          .from('career_notes')
+          .update({
+            ai_enhanced_description: aiEnhancedDescriptionText,
+            is_ai_processing: false
+          })
+          .eq('id', data.id);
+
+        if (updateError) throw updateError;
+
+        // Update local state
+        setNotes(prev => prev.map(note =>
+          note.id === data.id
+            ? {...note, ai_enhanced_description: aiEnhancedDescriptionText, is_ai_processing: false}
+            : note
+        ));
+      } catch (aiError) {
+        console.error('Error generating AI enhancement:', aiError);
+        // Update to remove processing flag even if AI fails
+        await supabase
+          .from('career_notes')
+          .update({is_ai_processing: false})
+          .eq('id', data.id);
+
+        setNotes(prev => prev.map(note =>
+          note.id === data.id
+            ? {...note, is_ai_processing: false}
+            : note
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating note:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const {error} = await supabase
+        .from('career_notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      // Update local state
+      setNotes(prev => prev.filter(note => note.id !== noteId));
+
+      // Remove from selected notes if it was selected
+      setSelectedNotes(prev => prev.filter(id => id !== noteId));
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
+
+  const handleOpenEditModal = (note: CareerNote) => {
+    setEditingNote(note);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingNote(null);
   };
 
   const getNoteCounts = (): Record<CareerNote['type'], number> => {
@@ -226,11 +327,15 @@ function App() {
           selectedNotes={selectedNotes}
           onNoteSelect={handleNoteSelect}
           selectionMode={isSelectionMode}
+          onEditNote={handleOpenEditModal}
+          onDeleteNote={handleDeleteNote}
         />
       ) : (
         <TimelineView
           notes={notes}
           isLoading={isLoading}
+          onEditNote={handleOpenEditModal}
+          onDeleteNote={handleDeleteNote}
         />
       )}
 
@@ -249,6 +354,13 @@ function App() {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      <EditNoteModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditNote}
+        note={editingNote}
       />
     </div>
 
