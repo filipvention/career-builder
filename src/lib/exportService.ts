@@ -1,4 +1,5 @@
 import { CareerNote, ExportOptions } from '../types';
+import { UserPreferencesService } from './userPreferences';
 
 export class ExportService {
   public static async generateExport(notes: CareerNote[], options: ExportOptions): Promise<string> {
@@ -9,12 +10,25 @@ export class ExportService {
       case 'cv':
         return this.generateCVSection(notes);
       case 'linkedin':
-        return this.generateLinkedInPost(notes, options.tone || 'neutral');
+        return this.generateLinkedInPost(notes, this.mapToneForLinkedIn(options.tone));
       case 'promotion':
         return this.generatePromotionCase(notes);
       default:
         throw new Error('Invalid export type');
     }
+  }
+
+  private static mapToneForLinkedIn(tone?: string): string {
+    const userTone = UserPreferencesService.getTone();
+
+    // Map user preferences to LinkedIn tone options
+    const toneMapping = {
+      professional: 'neutral',
+      friendly: 'inspiring',
+      technical: 'technical'
+    };
+
+    return tone || toneMapping[userTone] || 'neutral';
   }
 
   private static generateCVSection(notes: CareerNote[]): string {
@@ -26,7 +40,7 @@ export class ExportService {
     };
 
     let cvContent = '';
-    
+
     // Group notes by type
     const groupedNotes = notes.reduce((acc, note) => {
       if (!acc[note.type]) acc[note.type] = [];
@@ -75,25 +89,25 @@ export class ExportService {
     };
 
     const style = toneStyles[tone as keyof typeof toneStyles];
-    
+
     let post = `${style.opener}\n\n`;
-    
+
     // Add key highlights
     const highlights = notes.slice(0, 3).map(note => {
       const description = note.ai_enhanced_description || note.description;
       return `✓ ${description}`;
     }).join('\n');
-    
+
     post += `${highlights}\n\n`;
-    
+
     // Add reflection
     const skills = notes.filter(n => n.type === 'skill').map(n => n.title);
     if (skills.length > 0) {
       post += `${style.connector} ${skills.slice(0, 2).join(' and ')} ${skills.length > 2 ? 'and other key skills' : ''} are essential for driving impact.\n\n`;
     }
-    
+
     post += style.closer;
-    
+
     // Add hashtags based on tone
     if (tone === 'inspiring') {
       post += '\n\n#Growth #Achievement #ProfessionalDevelopment #Success';
@@ -102,18 +116,18 @@ export class ExportService {
     } else {
       post += '\n\n#ProfessionalUpdate #CareerDevelopment #Milestones';
     }
-    
+
     return post;
   }
 
   private static generatePromotionCase(notes: CareerNote[]): string {
     let promotionCase = 'PROMOTION CASE SUMMARY\n';
-    promotionCase += '=' .repeat(50) + '\n\n';
-    
+    promotionCase += '='.repeat(50) + '\n\n';
+
     // Executive Summary
     promotionCase += 'EXECUTIVE SUMMARY:\n';
     promotionCase += this.generateExecutiveSummary(notes) + '\n\n';
-    
+
     // Key Achievements
     const achievements = notes.filter(n => n.type === 'achievement');
     if (achievements.length > 0) {
@@ -124,7 +138,7 @@ export class ExportService {
       });
       promotionCase += '\n';
     }
-    
+
     // Project Impact
     const projects = notes.filter(n => n.type === 'project');
     if (projects.length > 0) {
@@ -135,7 +149,7 @@ export class ExportService {
       });
       promotionCase += '\n';
     }
-    
+
     // Performance Feedback
     const feedback = notes.filter(n => n.type === 'feedback');
     if (feedback.length > 0) {
@@ -146,7 +160,7 @@ export class ExportService {
       });
       promotionCase += '\n';
     }
-    
+
     // Skills Development
     const skills = notes.filter(n => n.type === 'skill');
     if (skills.length > 0) {
@@ -157,13 +171,13 @@ export class ExportService {
       });
       promotionCase += '\n';
     }
-    
+
     // Recommendation
     promotionCase += 'RECOMMENDATION:\n';
     promotionCase += 'Based on the documented achievements, project impact, and consistent performance recognition, ';
     promotionCase += 'I recommend advancement to the next level. The demonstrated capabilities align with ';
     promotionCase += 'senior-level responsibilities and show readiness for increased scope and leadership opportunities.';
-    
+
     return promotionCase;
   }
 
@@ -171,18 +185,18 @@ export class ExportService {
     const achievements = notes.filter(n => n.type === 'achievement').length;
     const projects = notes.filter(n => n.type === 'project').length;
     const skills = notes.filter(n => n.type === 'skill').length;
-    
+
     let summary = 'Results-driven professional with demonstrated expertise across ';
-    
+
     const areas = [];
     if (projects > 0) areas.push('project delivery');
     if (achievements > 0) areas.push('performance excellence');
     if (skills > 0) areas.push('technical development');
-    
+
     summary += areas.join(', ') + '. ';
     summary += `Proven track record of ${achievements + projects} documented accomplishments `;
     summary += 'with quantifiable impact and consistent recognition for quality delivery.';
-    
+
     return summary;
   }
 
@@ -190,12 +204,12 @@ export class ExportService {
     const totalNotes = notes.length;
     const achievements = notes.filter(n => n.type === 'achievement').length;
     const projects = notes.filter(n => n.type === 'project').length;
-    
+
     let summary = `This promotion case is based on ${totalNotes} documented career milestones, including `;
     summary += `${achievements} key achievements and ${projects} significant project contributions. `;
     summary += 'The evidence demonstrates consistent high performance, measurable impact, and readiness ';
     summary += 'for increased responsibilities and leadership opportunities.';
-    
+
     return summary;
   }
 }

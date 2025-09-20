@@ -9,13 +9,17 @@ import NotesList from "./components/NotesList.tsx";
 import AddNoteModal from "./components/AddNoteModal.tsx";
 import ExportModal from "./components/ExportModal.tsx";
 import Header from "./components/Header.tsx";
+import TimelineView from "./components/TimelineView.tsx";
+import SettingsModal from "./components/SettingsModal.tsx";
 
 function App() {
   const [notes, setNotes] = useState<CareerNote[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<CareerNote[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<CareerNote['type'] | 'all'>('all');
+  const [currentView, setCurrentView] = useState<'grid' | 'timeline'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +71,7 @@ function App() {
       // Then, generate AI enhancement in the background
       try {
         const aiEnhancedDescription = await AIService.enhanceDescription(data);
+        const aiEnhancedDescriptionText = aiEnhancedDescription.choices[0]?.message?.content || "";
 
         // Update the note with AI enhancement
         const {error: updateError} = await supabase
@@ -82,7 +87,7 @@ function App() {
         // Update local state
         setNotes(prev => prev.map(note =>
           note.id === data.id
-            ? {...note, ai_enhanced_description: aiEnhancedDescription, is_ai_processing: false}
+            ? {...note, ai_enhanced_description: aiEnhancedDescriptionText, is_ai_processing: false}
             : note
         ));
       } catch (aiError) {
@@ -143,7 +148,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header/>
+      <Header onOpenSettings={() => setIsSettingsModalOpen(true)}/>
 
       {notes.length === 0 && !isLoading ? (
         <HeroSection onAddNote={() => setIsModalOpen(true)}/>
@@ -158,39 +163,76 @@ function App() {
                     {notes.length} {notes.length === 1 ? 'note' : 'notes'} documenting your professional journey
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Add Note
-                </button>
+                <div className="flex items-center space-x-4">
+                  {/* View Toggle */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setCurrentView('grid')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        currentView === 'grid'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Grid View
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('timeline')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        currentView === 'timeline'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      My Career
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="inline-flex items-center px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Add Note
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <FilterBar
-            selectedFilter={selectedFilter}
-            onFilterChange={setSelectedFilter}
-            noteCounts={getNoteCounts()}
-          />
+          {currentView === 'grid' && (
+            <>
+              <FilterBar
+                selectedFilter={selectedFilter}
+                onFilterChange={setSelectedFilter}
+                noteCounts={getNoteCounts()}
+              />
 
-          <ExportBar
-            selectedCount={selectedNotes.length}
-            onExport={handleExport}
-            onClearSelection={handleClearSelection}
-            onToggleSelection={handleToggleSelectionMode}
-            isSelectionMode={isSelectionMode}
-          />
+              <ExportBar
+                selectedCount={selectedNotes.length}
+                onExport={handleExport}
+                onClearSelection={handleClearSelection}
+                onToggleSelection={handleToggleSelectionMode}
+                isSelectionMode={isSelectionMode}
+              />
+            </>
+          )}
         </>
       )}
 
-      <NotesList
-        notes={filteredNotes}
-        isLoading={isLoading}
-        selectedNotes={selectedNotes}
-        onNoteSelect={handleNoteSelect}
-        selectionMode={isSelectionMode}
-      />
+      {currentView === 'grid' ? (
+        <NotesList
+          notes={filteredNotes}
+          isLoading={isLoading}
+          selectedNotes={selectedNotes}
+          onNoteSelect={handleNoteSelect}
+          selectionMode={isSelectionMode}
+        />
+      ) : (
+        <TimelineView
+          notes={notes}
+          isLoading={isLoading}
+        />
+      )}
 
       <AddNoteModal
         isOpen={isModalOpen}
@@ -202,6 +244,11 @@ function App() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         selectedNotes={getSelectedNotesData()}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </div>
 

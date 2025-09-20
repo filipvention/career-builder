@@ -19,8 +19,15 @@ export interface ExportResult {
   type: string;
   tone?: string;
 }
+
 export interface NoteFormData {
   type: CareerNote['type'];
   title: string;
   description: string;
+}
+
+export type TonePreference = 'professional' | 'friendly' | 'technical';
+
+export interface UserPreferences {
+  tone: TonePreference;
 }
