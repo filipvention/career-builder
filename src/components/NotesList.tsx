@@ -9,6 +9,8 @@ interface NotesListProps {
   selectedNotes?: string[];
   onNoteSelect?: (noteId: string) => void;
   selectionMode?: boolean;
+  onEditNote?: (note: CareerNote) => void;
+  onDeleteNote?: (noteId: string) => void;
 }
 
 const NotesList: React.FC<NotesListProps> = ({
@@ -16,7 +18,9 @@ const NotesList: React.FC<NotesListProps> = ({
                                                isLoading,
                                                selectedNotes = [],
                                                onNoteSelect,
-                                               selectionMode = false
+                                               selectionMode = false,
+                                               onEditNote,
+                                               onDeleteNote
                                              }) => {
   if (isLoading) {
     return (
@@ -53,6 +57,8 @@ const NotesList: React.FC<NotesListProps> = ({
             note={note}
             isSelected={selectedNotes.includes(note.id)}
             onSelect={selectionMode ? onNoteSelect : undefined}
+            onEdit={!selectionMode ? onEditNote : undefined}
+            onDelete={!selectionMode ? onDeleteNote : undefined}
           />
         ))}
       </div>

@@ -5,9 +5,12 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Edit3,
   MessageCircle,
+  MoreVertical,
   Sparkles,
   Star,
+  Trash2,
   Trophy,
   User
 } from "lucide-react";
@@ -15,10 +18,13 @@ import {
 interface TimelineViewProps {
   notes: CareerNote[];
   isLoading: boolean;
+  onEditNote?: (note: CareerNote) => void;
+  onDeleteNote?: (noteId: string) => void;
 }
 
-const TimelineView: React.FC<TimelineViewProps> = ({notes, isLoading}) => {
+const TimelineView: React.FC<TimelineViewProps> = ({notes, isLoading, onEditNote, onDeleteNote}) => {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   const toggleExpanded = (noteId: string) => {
     const newExpanded = new Set(expandedNotes);
@@ -28,6 +34,20 @@ const TimelineView: React.FC<TimelineViewProps> = ({notes, isLoading}) => {
       newExpanded.add(noteId);
     }
     setExpandedNotes(newExpanded);
+  };
+
+  const handleEdit = (note: CareerNote, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveMenu(null);
+    onEditNote?.(note);
+  };
+
+  const handleDelete = (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveMenu(null);
+    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      onDeleteNote?.(noteId);
+    }
   };
 
   const getTypeIcon = (type: CareerNote['type']) => {
@@ -164,39 +184,79 @@ const TimelineView: React.FC<TimelineViewProps> = ({notes, isLoading}) => {
                       <div className="flex-1 min-w-0">
                         <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
                           {/* Header - Always visible */}
-                          <button
-                            onClick={() => toggleExpanded(note.id)}
-                            className="w-full p-6 text-left hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-3 mb-2">
-                                  <span className="text-sm font-medium text-gray-500 capitalize">
-                                    {note.type}
-                                  </span>
-                                  <span className="text-sm text-gray-400">•</span>
-                                  <span className="text-sm text-gray-500">
-                                    {dateInfo.full}
-                                  </span>
+                          <div className="relative">
+                            <button
+                              onClick={() => toggleExpanded(note.id)}
+                              className="w-full p-6 text-left hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0 pr-12">
+                                  <div className="flex items-center space-x-3 mb-2">
+                                    <span className="text-sm font-medium text-gray-500 capitalize">
+                                      {note.type}
+                                    </span>
+                                    <span className="text-sm text-gray-400">•</span>
+                                    <span className="text-sm text-gray-500">
+                                      {dateInfo.full}
+                                    </span>
+                                  </div>
+                                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                                    {note.title}
+                                  </h3>
+                                  {!isExpanded && (
+                                    <p className="mt-2 text-gray-600 text-sm line-clamp-2">
+                                      {note.description}
+                                    </p>
+                                  )}
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                                  {note.title}
-                                </h3>
-                                {!isExpanded && (
-                                  <p className="mt-2 text-gray-600 text-sm line-clamp-2">
-                                    {note.description}
-                                  </p>
+                                <div className="ml-4 flex-shrink-0">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-5 w-5 text-gray-400"/>
+                                  ) : (
+                                    <ChevronRight className="h-5 w-5 text-gray-400"/>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* Actions menu */}
+                            {(onEditNote || onDeleteNote) && (
+                              <div className="absolute top-4 right-4">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenu(activeMenu === note.id ? null : note.id);
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                  <MoreVertical className="h-4 w-4"/>
+                                </button>
+                                
+                                {activeMenu === note.id && (
+                                  <div className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[120px]">
+                                    {onEditNote && (
+                                      <button
+                                        onClick={(e) => handleEdit(note, e)}
+                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                                      >
+                                        <Edit3 className="h-4 w-4"/>
+                                        <span>Edit</span>
+                                      </button>
+                                    )}
+                                    {onDeleteNote && (
+                                      <button
+                                        onClick={(e) => handleDelete(note.id, e)}
+                                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                                      >
+                                        <Trash2 className="h-4 w-4"/>
+                                        <span>Delete</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              <div className="ml-4 flex-shrink-0">
-                                {isExpanded ? (
-                                  <ChevronDown className="h-5 w-5 text-gray-400"/>
-                                ) : (
-                                  <ChevronRight className="h-5 w-5 text-gray-400"/>
-                                )}
-                              </div>
-                            </div>
-                          </button>
+                            )}
+                          </div>
 
                           {/* Expanded content */}
                           {isExpanded && (
