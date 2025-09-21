@@ -42,6 +42,7 @@ export class AIService {
     // });
   }
 
+
   private static simulateAIEnhancement(description: string): string {
     const tone = UserPreferencesService.getTone();
 
